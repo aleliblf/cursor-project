@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [validateKey, setValidateKey] = useState("");
+  const [validationResult, setValidationResult] = useState<{ isValid: boolean; message: string } | null>(null);
 
   const generateApiKey = () => {
     return `leli_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
@@ -162,6 +164,38 @@ export default function Dashboard() {
     alert("API key copied to clipboard!");
   };
 
+  const handleValidateKey = async () => {
+    if (!validateKey.trim()) {
+      setValidationResult({ isValid: false, message: "Please enter an API key" });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ apiKey: validateKey.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setValidationResult({ isValid: true, message: "Valid API key" });
+      } else {
+        setValidationResult({ isValid: false, message: data.error || "Invalid API key" });
+      }
+    } catch (err) {
+      setValidationResult({ isValid: false, message: "Invalid API key" });
+    }
+  };
+
+  const closeValidationPopup = () => {
+    setValidationResult(null);
+    setValidateKey("");
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Top Bar */}
@@ -290,6 +324,26 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* API Key Validation Section */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Validate API Key</h3>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={validateKey}
+                  onChange={(e) => setValidateKey(e.target.value)}
+                  placeholder="Enter API key to validate"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                />
+                <button
+                  onClick={handleValidateKey}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Validate
+                </button>
+              </div>
+            </div>
+
             {loading ? (
               <div className="text-center py-12">
                 <p className="text-gray-500">Loading API keys...</p>
@@ -385,6 +439,42 @@ export default function Dashboard() {
          
         </div>
       </main>
+
+      {/* Validation Result Popup */}
+      {validationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4">
+                {validationResult.isValid ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <h3 className={`text-xl font-bold text-center mb-2 ${validationResult.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                {validationResult.message}
+              </h3>
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={closeValidationPopup}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
