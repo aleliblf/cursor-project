@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
   try {
@@ -155,46 +154,41 @@ export async function POST(request: NextRequest) {
     // Use Langchain to generate AI-powered summary with structured output
     console.log('Generating AI summary with Langchain...');
 
-    // Define the output structure
-    const parser = StructuredOutputParser.fromNamesAndDescriptions({
-      summary: "A concise string summary of the GitHub repository",
-      cool_facts: "A list of strings containing interesting facts about the repository"
+    // Define the output schema using Zod
+    const summarySchema = z.object({
+      summary: z.string().describe("A concise summary of the GitHub repository"),
+      cool_facts: z.array(z.string()).describe("A list of 3-5 interesting facts about the repository")
     });
 
-    const formatInstructions = parser.getFormatInstructions();
-
-    // Create the prompt template
-    const promptTemplate = new PromptTemplate({
-      template: "Summarize this github repository from this readme file content.\n\nRepository Name: {repoName}\nRepository Description: {repoDescription}\n\nREADME Content:\n{readmeContent}\n\n{format_instructions}",
-      inputVariables: ["repoName", "repoDescription", "readmeContent"],
-      partialVariables: { format_instructions: formatInstructions }
-    });
-
-    // Initialize the LLM
+    // Initialize the LLM with structured output
     const model = new ChatOpenAI({
       modelName: "gpt-3.5-turbo",
       temperature: 0.7,
       openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
-    try {
-      // Create the chain
-      const chain = promptTemplate.pipe(model).pipe(parser);
+    const structuredModel = model.withStructuredOutput(summarySchema);
 
-      // Invoke the chain with readmeContent
-      const result = await chain.invoke({
-        repoName: repoData.full_name,
-        repoDescription: repoData.description || "No description available",
-        readmeContent: readmeContent.substring(0, 4000) // Limit to avoid token limits
-      });
+    try {
+      // Create the prompt
+      const prompt = `Summarize this github repository from this readme file content.
+
+Repository Name: ${repoData.full_name}
+Repository Description: ${repoData.description || "No description available"}
+
+README Content:
+${readmeContent.substring(0, 4000)}
+
+Provide a concise summary and 3-5 interesting facts about this repository.`;
+
+      // Invoke the model with structured output
+      const result = await structuredModel.invoke(prompt);
 
       console.log('AI summary generated successfully');
 
       return NextResponse.json({
         summary: result.summary,
-        cool_facts: Array.isArray(result.cool_facts) 
-          ? result.cool_facts 
-          : [result.cool_facts]
+        cool_facts: result.cool_facts
       }, { status: 200 });
 
     } catch (aiError: any) {
