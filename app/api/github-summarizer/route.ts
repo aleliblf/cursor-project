@@ -7,29 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     // Get API key from header
     const apiKey = request.headers.get('x-api-key');
+    const demoUser = request.headers.get('x-demo-user');
     
-    console.log('Validating API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'empty');
+    console.log('Validating API key:', apiKey ? `${apiKey.substring(0, 10)}...` : (demoUser ? 'demo mode' : 'empty'));
 
-    if (!apiKey) {
-      console.log('No API key provided');
-      return NextResponse.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
-      );
-    }
-
-    // Validate API key in database
+    // Initialize Supabase
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    console.log('Supabase URL:', supabaseUrl);
-    console.log('Supabase Key exists:', !!supabaseKey);
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase credentials');
       return NextResponse.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
+        { error: 'Server configuration error' },
+        { status: 500 }
       );
     }
 
@@ -45,32 +35,81 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Querying database for key:', apiKey.trim());
-    const { data: apiKeyData, error: apiKeyError } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('key', apiKey.trim())
-      .maybeSingle();
+    // Check if this is a demo request
+    let isDemoRequest = false;
+    let demoUserEmail = '';
+    let currentDemoUsage = 0;
+    
+    if (!apiKey && demoUser) {
+      console.log('Demo request from:', demoUser);
+      isDemoRequest = true;
+      demoUserEmail = demoUser;
+      
+      // Check demo usage limit
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('demo_usage')
+        .eq('email', demoUser)
+        .single();
 
-    console.log('Query result - data:', apiKeyData ? 'found' : 'not found', 'error:', apiKeyError);
+      console.log('User data query result:', { userData, userError });
 
-    if (apiKeyError) {
-      console.error('Supabase error:', apiKeyError);
+      if (userError) {
+        console.error('Error fetching user:', userError);
+        return NextResponse.json(
+          { error: 'Authentication error' },
+          { status: 401 }
+        );
+      }
+
+      currentDemoUsage = userData?.demo_usage || 0;
+      const DEMO_LIMIT = 5;
+
+      console.log(`Current demo usage: ${currentDemoUsage}/${DEMO_LIMIT}`);
+
+      if (currentDemoUsage >= DEMO_LIMIT) {
+        return NextResponse.json(
+          { error: 'Demo request limit exceeded' },
+          { status: 429 }
+        );
+      }
+
+      console.log(`Demo usage: ${currentDemoUsage}/${DEMO_LIMIT} (will increment on success)`);
+    } else if (!apiKey) {
+      console.log('No API key or demo user provided');
       return NextResponse.json(
         { error: 'Invalid API key' },
         { status: 401 }
       );
-    }
+    } else {
+      // Validate API key in database
+      console.log('Querying database for key:', apiKey.trim());
+      const { data: apiKeyData, error: apiKeyError } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('key', apiKey.trim())
+        .maybeSingle();
 
-    if (!apiKeyData) {
-      console.log('No matching API key found');
-      return NextResponse.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
-      );
-    }
+      console.log('Query result - data:', apiKeyData ? 'found' : 'not found', 'error:', apiKeyError);
 
-    console.log('Valid API key found:', apiKeyData.name);
+      if (apiKeyError) {
+        console.error('Supabase error:', apiKeyError);
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        );
+      }
+
+      if (!apiKeyData) {
+        console.log('No matching API key found');
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        );
+      }
+
+      console.log('Valid API key found:', apiKeyData.name);
+    }
 
     // Get GitHub URL from request body
     const body = await request.json();
@@ -186,6 +225,25 @@ Provide a concise summary and 3-5 interesting facts about this repository.`;
 
       console.log('AI summary generated successfully');
 
+      // Increment demo usage only on successful completion
+      if (isDemoRequest && demoUserEmail) {
+        console.log('Attempting to increment demo usage for:', demoUserEmail);
+        console.log('Current usage before increment:', currentDemoUsage);
+        
+        const { data: updateData, error: updateError } = await supabase
+          .from('users')
+          .update({ demo_usage: currentDemoUsage + 1 })
+          .eq('email', demoUserEmail)
+          .select();
+        
+        if (updateError) {
+          console.error('Failed to increment demo usage:', updateError);
+        } else {
+          console.log('Demo usage update result:', updateData);
+          console.log(`Demo usage incremented: ${currentDemoUsage + 1}/5`);
+        }
+      }
+
       return NextResponse.json({
         summary: result.summary,
         cool_facts: result.cool_facts
@@ -201,6 +259,24 @@ Provide a concise summary and 3-5 interesting facts about this repository.`;
       if (repoData.description) fallbackFacts.push(repoData.description);
       if (repoData.topics?.length) fallbackFacts.push(`Uses ${repoData.topics.slice(0, 3).join(', ')} technologies`);
       if (repoData.stargazers_count > 100) fallbackFacts.push(`${repoData.stargazers_count} stars on GitHub`);
+
+      // Increment demo usage even for fallback response (user still got a result)
+      if (isDemoRequest && demoUserEmail) {
+        console.log('Attempting to increment demo usage for fallback response:', demoUserEmail);
+        
+        const { data: updateData, error: updateError } = await supabase
+          .from('users')
+          .update({ demo_usage: currentDemoUsage + 1 })
+          .eq('email', demoUserEmail)
+          .select();
+        
+        if (updateError) {
+          console.error('Failed to increment demo usage:', updateError);
+        } else {
+          console.log('Demo usage update result:', updateData);
+          console.log(`Demo usage incremented (fallback): ${currentDemoUsage + 1}/5`);
+        }
+      }
 
       return NextResponse.json({
         summary: fallbackSummary,

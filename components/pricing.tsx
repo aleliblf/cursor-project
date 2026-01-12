@@ -32,8 +32,9 @@ const plans = [
       "API access",
       "Custom webhooks",
     ],
-    cta: "Start Pro Trial",
+    cta: "Coming Soon",
     popular: true,
+    comingSoon: true,
   },
   {
     name: "Enterprise",
@@ -49,8 +50,9 @@ const plans = [
       "On-premise deployment",
       "Custom training",
     ],
-    cta: "Contact Sales",
+    cta: "Coming Soon",
     popular: false,
+    comingSoon: true,
   },
 ]
 
@@ -92,7 +94,7 @@ export function Pricing() {
                 <p className="text-xs md:text-sm text-muted-foreground">{plan.description}</p>
               </div>
 
-              <Button className="w-full mb-6" variant={plan.popular ? "default" : "outline"} size="lg">
+              <Button className="w-full mb-6" variant={plan.popular ? "default" : "outline"} size="lg" disabled={plan.comingSoon}>
                 {plan.cta}
               </Button>
 
