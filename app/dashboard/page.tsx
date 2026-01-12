@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { Header } from "@/components/hero";
+import { Button } from "@/components/ui/button";
 
 interface ApiKey {
   id: string;
@@ -198,160 +200,43 @@ export default function Dashboard() {
     setValidateKey("");
   };
 
+  // Show loading state while session is being fetched
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-green-500 z-50"></div>
-
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 pt-12 px-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Tavily AI</h1>
-        </div>
-        
-        {/* User Profile in Sidebar */}
-        {session && (
-          <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              {session.user?.image && (
-                <img 
-                  src={session.user.image} 
-                  alt={session.user.name || "User"} 
-                  className="w-10 h-10 rounded-full ring-2 ring-purple-500"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">
-                  {session.user?.name}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {session.user?.email}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <nav className="space-y-1">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-50 text-purple-700 font-medium"
-          >
-            Overview
-          </Link>
-          <div className="flex items-center gap-3 px-3 py-2 text-gray-500">
-            Research Assistant
-          </div>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-            Research Reports
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-            API Playground
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-            Invoices
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-            Documentation
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </Link>
-        </nav>
-      </aside>
-
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      
       {/* Main Content */}
-      <main className="flex-1 ml-64 pt-1">
-        {/* Top Bar Right Section */}
-        <div className="fixed top-0 right-0 h-12 bg-white border-b border-gray-200 flex items-center justify-end gap-4 px-6 z-40">
-          {status === "loading" ? (
-            <div className="text-sm text-gray-600">Loading...</div>
-          ) : session ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                {session.user?.image && (
-                  <img 
-                    src={session.user.image} 
-                    alt={session.user.name || "User"} 
-                    className="w-9 h-9 rounded-full ring-2 ring-gray-200"
-                  />
-                )}
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">{session.user?.name}</div>
-                  <div className="text-gray-500 text-xs">{session.user?.email}</div>
-                </div>
-              </div>
-              <button
-                onClick={() => signOut()}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => signIn('google')}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Sign in with Google
-            </button>
-          )}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span>Operational</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="#" className="text-gray-600 hover:text-gray-900">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-              </svg>
-            </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-              </svg>
-            </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </a>
-          </div>
-          <button className="px-3 py-1 bg-green-500 text-white text-sm font-medium rounded">
-            50%
-          </button>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="pt-12 px-8 pb-8">
-          {/* Breadcrumb */}
-          <div className="mb-4">
-            <nav className="text-sm text-gray-600">
-              <span>Pages</span>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">Overview</span>
-            </nav>
-          </div>
-
+      <main className="flex-1 pt-20 px-4 md:px-8 lg:px-12">
+        <div className="max-w-7xl mx-auto">
           {/* Page Title */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Overview</h1>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">API Key Management</h1>
+            <p className="text-muted-foreground">Manage your API keys and monitor usage</p>
+          </div>
 
           {/* Current Plan Card */}
-          <div className="mb-8 rounded-xl bg-gradient-to-br from-purple-600 to-purple-400 p-6 text-white">
+          <div className="mb-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 p-6 text-primary-foreground shadow-lg">
             <div className="flex items-start justify-between mb-4">
               <span className="text-sm font-medium opacity-90">CURRENT PLAN</span>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button 
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-0"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Manage Plan
-              </button>
+              </Button>
             </div>
             <h2 className="text-3xl font-bold mb-4">Researcher</h2>
             <div className="flex items-center gap-2 text-sm opacity-90">
@@ -364,63 +249,64 @@ export default function Dashboard() {
           </div>
 
           {/* API Keys Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="bg-card rounded-lg border border-border p-6 mb-8 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">API Keys</h2>
-              <button
+              <h2 className="text-xl font-semibold text-card-foreground">API Keys</h2>
+              <Button
                 onClick={() => handleOpenModal()}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                size="icon"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-              </button>
+              </Button>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               The key is used to authenticate your requests to the Research API. To learn more, see the{" "}
-              <a href="#" className="text-purple-600 hover:underline">Research API</a> link and{" "}
-              <a href="#" className="text-purple-600 hover:underline">documentation page</a> link.
+              <a href="#" className="text-primary hover:underline">Research API</a> link and{" "}
+              <a href="#" className="text-primary hover:underline">documentation page</a> link.
             </p>
 
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
 
             {/* API Key Validation Section */}
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Validate API Key</h3>
+            <div className="mb-6 p-4 bg-accent/50 border border-border rounded-lg">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Validate API Key</h3>
               <div className="flex gap-3">
                 <input
                   type="text"
                   value={validateKey}
                   onChange={(e) => setValidateKey(e.target.value)}
                   placeholder="Enter API key to validate"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                  className="flex-1 px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent font-mono text-sm"
                 />
-                <button
+                <Button
                   onClick={handleValidateKey}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Validate
-                </button>
+                </Button>
               </div>
             </div>
 
             {loading ? (
               <div className="text-center py-12">
-                <p className="text-gray-500">Loading API keys...</p>
+                <p className="text-muted-foreground">Loading API keys...</p>
               </div>
             ) : apiKeys.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No API keys yet. Create your first one to get started.</p>
-                <button
+                <p className="text-muted-foreground mb-4">No API keys yet. Create your first one to get started.</p>
+                <Button
                   onClick={() => handleOpenModal()}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Create API Key
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -432,22 +318,22 @@ export default function Dashboard() {
                     <col style={{ width: '128px' }} />
                   </colgroup>
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">NAME</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">NAME</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground">
                         AGE
                       </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">KEY</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">OPTIONS</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">KEY</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">OPTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {apiKeys.map((apiKey) => (
-                      <tr key={apiKey.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4 text-sm text-gray-900">{apiKey.name}</td>
-                        <td className="py-4 px-4 text-sm text-gray-600">{getAge(apiKey.createdAt)}</td>
+                      <tr key={apiKey.id} className="border-b border-border/50 hover:bg-accent/30">
+                        <td className="py-4 px-4 text-sm text-foreground">{apiKey.name}</td>
+                        <td className="py-4 px-4 text-sm text-muted-foreground">{getAge(apiKey.createdAt)}</td>
                         <td className="py-4 px-4" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
-                          <code className="text-sm font-mono text-gray-700 whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '100%' }}>
+                          <code className="text-sm font-mono text-foreground whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '100%' }}>
                             {visibleKeys.has(apiKey.id) ? apiKey.key : maskKey(apiKey.key)}
                           </code>
                         </td>
@@ -455,7 +341,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => toggleKeyVisibility(apiKey.id)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
                               title={visibleKeys.has(apiKey.id) ? "Hide key" : "Show key"}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +359,7 @@ export default function Dashboard() {
                             </button>
                             <button
                               onClick={() => handleOpenModal(apiKey)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-muted-foreground hover:text-foreground transition-colors"
                               title="Edit"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,7 +368,7 @@ export default function Dashboard() {
                             </button>
                             <button
                               onClick={() => handleDelete(apiKey.id)}
-                              className="text-gray-600 hover:text-red-600 transition-colors"
+                              className="text-muted-foreground hover:text-destructive transition-colors"
                               title="Delete"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,42 +384,39 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-
-          {/* Support Section */}
-         
         </div>
       </main>
 
       {/* Validation Result Popup */}
       {validationResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-sm w-full mx-4 border border-border">
             <div className="p-6">
               <div className="flex items-center justify-center mb-4">
                 {validationResult.isValid ? (
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
                 ) : (
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                    <svg className="w-10 h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </div>
                 )}
               </div>
-              <h3 className={`text-xl font-bold text-center mb-2 ${validationResult.isValid ? 'text-green-600' : 'text-red-600'}`}>
+              <h3 className={`text-xl font-bold text-center mb-2 ${validationResult.isValid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {validationResult.message}
               </h3>
               <div className="flex justify-center mt-6">
-                <button
+                <Button
                   onClick={closeValidationPopup}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Close
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -542,15 +425,15 @@ export default function Dashboard() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full mx-4 border border-border">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              <h2 className="text-2xl font-bold text-foreground mb-4">
                 {editingKey ? "Edit API Key" : "Create New API Key"}
               </h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Name
                   </label>
                   <input
@@ -559,13 +442,13 @@ export default function Dashboard() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="My API Key"
                     required
                   />
                 </div>
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     API Key
                   </label>
                   <div className="flex gap-2">
@@ -575,41 +458,43 @@ export default function Dashboard() {
                       onChange={(e) =>
                         setFormData({ ...formData, key: e.target.value })
                       }
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                      className="flex-1 px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent font-mono text-sm"
                       required
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setFormData({ ...formData, key: generateApiKey() })}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      variant="secondary"
+                      size="icon"
                       title="Generate new key"
                     >
                       🔄
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => handleCopy(formData.key)}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      variant="secondary"
+                      size="icon"
                       title="Copy to clipboard"
                     >
                       📋
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="flex justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={handleCloseModal}
-                    className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    variant="ghost"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     {editingKey ? "Update" : "Create"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
