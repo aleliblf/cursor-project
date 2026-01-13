@@ -21,9 +21,17 @@ export async function POST(request: NextRequest) {
       .from('api_keys')
       .select('*')
       .eq('key', apiKey.trim())
-      .single();
+      .maybeSingle();
 
-    if (error || !apiKeyData) {
+    if (error) {
+      console.error('Database error:', error);
+      return NextResponse.json(
+        { error: 'Database error' },
+        { status: 500 }
+      );
+    }
+
+    if (!apiKeyData) {
       console.log('No matching API key found');
       return NextResponse.json(
         { error: 'Invalid API key' },

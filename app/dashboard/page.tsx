@@ -304,6 +304,7 @@ export default function Dashboard() {
                     <tr className="border-b border-border">
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-auto">NAME</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground" style={{ minWidth: '320px' }}>KEY</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24">USAGE</th>
                       <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-32">OPTIONS</th>
                     </tr>
                   </thead>
@@ -315,6 +316,9 @@ export default function Dashboard() {
                           <code className="text-sm font-mono text-foreground whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '320px' }}>
                             {visibleKeys.has(apiKey.id) ? apiKey.key : maskKey(apiKey.key)}
                           </code>
+                        </td>
+                        <td className="py-4 px-4 text-sm text-muted-foreground">
+                          {apiKey.usage || 0}/{apiKey.max_limit || 1000}
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ChatOpenAI } from '@langchain/openai';
 import { z } from 'zod';
+import { checkAndIncrementRateLimit } from '@/lib/utils/rateLimit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,33 +83,31 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     } else {
-      // Validate API key in database
-      console.log('Querying database for key:', apiKey.trim());
-      const { data: apiKeyData, error: apiKeyError } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('key', apiKey.trim())
-        .maybeSingle();
+      // Check rate limit and increment usage
+      console.log('Checking rate limit for key:', apiKey.substring(0, 10) + '...');
+      const rateLimitResult = await checkAndIncrementRateLimit(apiKey);
 
-      console.log('Query result - data:', apiKeyData ? 'found' : 'not found', 'error:', apiKeyError);
-
-      if (apiKeyError) {
-        console.error('Supabase error:', apiKeyError);
+      if (!rateLimitResult.allowed) {
+        if (rateLimitResult.error === 'Rate limit exceeded') {
+          console.log(`Rate limit exceeded: ${rateLimitResult.usage}/${rateLimitResult.limit}`);
+          return NextResponse.json(
+            { 
+              error: 'Rate limit exceeded', 
+              usage: rateLimitResult.usage,
+              limit: rateLimitResult.limit
+            },
+            { status: 429 }
+          );
+        }
+        
+        console.log('Rate limit check failed:', rateLimitResult.error);
         return NextResponse.json(
-          { error: 'Invalid API key' },
+          { error: rateLimitResult.error || 'Invalid API key' },
           { status: 401 }
         );
       }
 
-      if (!apiKeyData) {
-        console.log('No matching API key found');
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        );
-      }
-
-      console.log('Valid API key found:', apiKeyData.name);
+      console.log(`Rate limit check passed: ${rateLimitResult.usage}/${rateLimitResult.limit}`);
     }
 
     // Get GitHub URL from request body

@@ -8,6 +8,8 @@ export interface ApiKey {
   user_id?: string;
   description?: string | null;
   is_active?: boolean;
+  usage?: number;
+  max_limit?: number;
   created_at: string;
   updated_at?: string;
 }
