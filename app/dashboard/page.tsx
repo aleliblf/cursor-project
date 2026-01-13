@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Header } from "@/components/hero";
 import { Button } from "@/components/ui/button";
-import { type ApiKey, generateApiKey } from "@/lib/apiKeyOperations";
+import { type ApiKey } from "@/types/api";
+import { generateApiKey } from "@/lib/utils/apiKey";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();

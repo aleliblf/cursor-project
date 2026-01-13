@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { supabase } from '@/lib/supabase';
-import { generateApiKey } from '@/lib/apiKeyOperations';
+import { generateApiKey } from '@/lib/utils/apiKey';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {

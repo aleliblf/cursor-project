@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, getApiKeyByKey } from '@/lib/apiKeyOperations';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,9 +17,13 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Checking if API key exists in database...');
-    const isValid = await validateApiKey(apiKey);
+    const { data: apiKeyData, error } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('key', apiKey.trim())
+      .single();
 
-    if (!isValid) {
+    if (error || !apiKeyData) {
       console.log('No matching API key found');
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -27,14 +31,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKeyData = await getApiKeyByKey(apiKey);
-    console.log('Valid API key found:', apiKeyData?.name);
+    console.log('Valid API key found:', apiKeyData.name);
     
     return NextResponse.json(
       { 
         message: 'Valid API key',
-        name: apiKeyData?.name,
-        createdAt: apiKeyData?.created_at
+        name: apiKeyData.name,
+        createdAt: apiKeyData.created_at
       },
       { status: 200 }
     );
@@ -58,22 +61,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const isValid = await validateApiKey(apiKey);
+    const { data: apiKeyData, error } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('key', apiKey.trim())
+      .single();
 
-    if (!isValid) {
+    if (error || !apiKeyData) {
       return NextResponse.json(
         { error: 'Invalid API key' },
         { status: 401 }
       );
     }
-
-    const apiKeyData = await getApiKeyByKey(apiKey);
     
     return NextResponse.json(
       { 
         message: 'Valid API key',
-        name: apiKeyData?.name,
-        createdAt: apiKeyData?.created_at
+        name: apiKeyData.name,
+        createdAt: apiKeyData.created_at
       },
       { status: 200 }
     );
