@@ -7,7 +7,11 @@ export interface ApiKey {
   id: string;
   name: string;
   key: string;
-  createdAt: string;
+  user_id?: string;
+  description?: string | null;
+  is_active?: boolean;
+  created_at: string;
+  updated_at?: string;
 }
 
 /**
@@ -38,13 +42,8 @@ export async function loadApiKeys(): Promise<ApiKey[]> {
     throw new Error(error.message || 'Failed to load API keys');
   }
 
-  // Map database fields to ApiKey interface
-  return (data || []).map((key: any) => ({
-    id: key.id,
-    name: key.name,
-    key: key.key,
-    createdAt: key.created_at,
-  }));
+  // Return data as-is since it matches the ApiKey interface
+  return data || [];
 }
 
 /**
@@ -127,10 +126,6 @@ export async function getApiKeyByKey(apiKey: string): Promise<ApiKey | null> {
     return null;
   }
 
-  return {
-    id: data.id,
-    name: data.name,
-    key: data.key,
-    createdAt: data.created_at,
-  };
+  // Return data as-is since it matches the ApiKey interface
+  return data;
 }

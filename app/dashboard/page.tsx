@@ -5,14 +5,7 @@ import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Header } from "@/components/hero";
 import { Button } from "@/components/ui/button";
-import {
-  type ApiKey,
-  generateApiKey,
-  loadApiKeys as fetchApiKeys,
-  createApiKey,
-  updateApiKey,
-  deleteApiKey,
-} from "@/lib/apiKeyOperations";
+import { type ApiKey, generateApiKey } from "@/lib/apiKeyOperations";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -35,7 +28,13 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const keys = await fetchApiKeys();
+      const response = await fetch('/api/keys');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load API keys: ${response.statusText}`);
+      }
+      
+      const keys = await response.json();
       setApiKeys(keys);
     } catch (err: any) {
       console.error('Error loading API keys:', err);
@@ -46,8 +45,10 @@ export default function Dashboard() {
   };
 
   const getAge = (createdAt: string) => {
+    if (!createdAt) return 0;
     const now = new Date();
     const created = new Date(createdAt);
+    if (isNaN(created.getTime())) return 0;
     const diffTime = Math.abs(now.getTime() - created.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -92,10 +93,28 @@ export default function Dashboard() {
       
       if (editingKey) {
         // Update existing key
-        await updateApiKey(editingKey.id, formData);
+        const response = await fetch(`/api/keys/${editingKey.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to update API key');
+        }
       } else {
         // Create new key
-        await createApiKey(formData);
+        const response = await fetch('/api/keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to create API key');
+        }
       }
 
       // Reload keys from database
@@ -112,7 +131,14 @@ export default function Dashboard() {
     if (confirm("Are you sure you want to delete this API key?")) {
       try {
         setError(null);
-        await deleteApiKey(id);
+        const response = await fetch(`/api/keys/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to delete API key');
+        }
 
         // Reload keys from database
         await loadApiKeys();
@@ -292,7 +318,7 @@ export default function Dashboard() {
                     {apiKeys.map((apiKey) => (
                       <tr key={apiKey.id} className="border-b border-border/50 hover:bg-accent/30">
                         <td className="py-4 px-4 text-sm text-foreground">{apiKey.name}</td>
-                        <td className="py-4 px-4 text-sm text-muted-foreground">{getAge(apiKey.createdAt)}</td>
+                        <td className="py-4 px-4 text-sm text-muted-foreground">{getAge(apiKey.created_at)}</td>
                         <td className="py-4 px-4" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
                           <code className="text-sm font-mono text-foreground whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '100%' }}>
                             {visibleKeys.has(apiKey.id) ? apiKey.key : maskKey(apiKey.key)}
