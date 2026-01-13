@@ -27,13 +27,13 @@ export function Header() {
             <Link href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </Link>
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Dashboard
-            </Link>
           </nav>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
             {session ? (
               <>
                 {session.user?.image && (
@@ -82,14 +82,12 @@ export function Header() {
               >
                 Pricing
               </Link>
-              <Link
-                href="/dashboard"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <div className="flex items-center gap-3 px-2 pt-2 border-t border-border">
+              <div className="flex flex-col gap-3 px-2 pt-2 border-t border-border">
+                <Button size="sm" variant="outline" asChild className="w-full">
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    Dashboard
+                  </Link>
+                </Button>
                 {session ? (
                   <>
                     {session.user?.image && (
