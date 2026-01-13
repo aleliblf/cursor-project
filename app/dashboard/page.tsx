@@ -45,16 +45,6 @@ export default function Dashboard() {
     }
   };
 
-  const getAge = (createdAt: string) => {
-    if (!createdAt) return 0;
-    const now = new Date();
-    const created = new Date(createdAt);
-    if (isNaN(created.getTime())) return 0;
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
   const maskKey = (key: string) => {
     if (key.length <= 8) return "****";
     return key.substring(0, 4) + "**********";
@@ -265,7 +255,7 @@ export default function Dashboard() {
             {/* API Key Validation Section */}
             <div className="mb-6 p-4 bg-accent/50 border border-border rounded-lg">
               <h3 className="text-sm font-semibold text-foreground mb-3">Validate API Key</h3>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   value={validateKey}
@@ -275,7 +265,7 @@ export default function Dashboard() {
                 />
                 <Button
                   onClick={handleValidateKey}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 sm:w-auto w-full"
                 >
                   Validate
                 </Button>
@@ -298,30 +288,20 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
-                  <colgroup>
-                    <col style={{ width: 'auto' }} />
-                    <col style={{ width: '80px' }} />
-                    <col style={{ width: '320px' }} />
-                    <col style={{ width: '128px' }} />
-                  </colgroup>
+                <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">NAME</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground">
-                        AGE
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">KEY</th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">OPTIONS</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-auto">NAME</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground" style={{ minWidth: '320px' }}>KEY</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-32">OPTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {apiKeys.map((apiKey) => (
                       <tr key={apiKey.id} className="border-b border-border/50 hover:bg-accent/30">
                         <td className="py-4 px-4 text-sm text-foreground">{apiKey.name}</td>
-                        <td className="py-4 px-4 text-sm text-muted-foreground">{getAge(apiKey.created_at)}</td>
-                        <td className="py-4 px-4" style={{ width: '320px', minWidth: '320px', maxWidth: '320px' }}>
-                          <code className="text-sm font-mono text-foreground whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '100%' }}>
+                        <td className="py-4 px-4">
+                          <code className="text-sm font-mono text-foreground whitespace-nowrap block overflow-hidden text-ellipsis" style={{ maxWidth: '320px' }}>
                             {visibleKeys.has(apiKey.id) ? apiKey.key : maskKey(apiKey.key)}
                           </code>
                         </td>
