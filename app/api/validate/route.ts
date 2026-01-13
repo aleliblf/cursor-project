@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { validateApiKey, getApiKeyByKey } from '@/lib/apiKeyOperations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,50 +16,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    console.log('Checking if API key exists in database...');
+    const isValid = await validateApiKey(apiKey);
 
-    console.log('Supabase URL:', supabaseUrl);
-    console.log('Supabase Key exists:', !!supabaseKey);
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase credentials');
-      return NextResponse.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: {
-        fetch: (url, options = {}) => {
-          return fetch(url, {
-            ...options,
-            // @ts-ignore
-            agent: undefined
-          });
-        }
-      }
-    });
-
-    console.log('Querying database for key:', apiKey.trim());
-    const { data, error } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('key', apiKey.trim())
-      .maybeSingle();
-
-    console.log('Query result - data:', data ? 'found' : 'not found', 'error:', error);
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Invalid API key' },
-        { status: 401 }
-      );
-    }
-
-    if (!data) {
+    if (!isValid) {
       console.log('No matching API key found');
       return NextResponse.json(
         { error: 'Invalid API key' },
@@ -67,12 +27,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Valid API key found:', data.name);
+    const apiKeyData = await getApiKeyByKey(apiKey);
+    console.log('Valid API key found:', apiKeyData?.name);
+    
     return NextResponse.json(
       { 
         message: 'Valid API key',
-        name: data.name,
-        createdAt: data.created_at
+        name: apiKeyData?.name,
+        createdAt: apiKeyData?.createdAt
       },
       { status: 200 }
     );
@@ -95,37 +57,30 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  try {
+    const isValid = await validateApiKey(apiKey);
 
-  if (!supabaseUrl || !supabaseKey) {
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Invalid API key' },
+        { status: 401 }
+      );
+    }
+
+    const apiKeyData = await getApiKeyByKey(apiKey);
+    
+    return NextResponse.json(
+      { 
+        message: 'Valid API key',
+        name: apiKeyData?.name,
+        createdAt: apiKeyData?.createdAt
+      },
+      { status: 200 }
+    );
+  } catch (err) {
     return NextResponse.json(
       { error: 'Invalid API key' },
       { status: 401 }
     );
   }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { data, error } = await supabase
-    .from('api_keys')
-    .select('*')
-    .eq('key', apiKey.trim())
-    .maybeSingle();
-
-  if (error || !data) {
-    return NextResponse.json(
-      { error: 'Invalid API key' },
-      { status: 401 }
-    );
-  }
-
-  return NextResponse.json(
-    { 
-      message: 'Valid API key',
-      name: data.name,
-      createdAt: data.created_at
-    },
-    { status: 200 }
-  );
 }

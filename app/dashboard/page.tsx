@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Header } from "@/components/hero";
 import { Button } from "@/components/ui/button";
-
-interface ApiKey {
-  id: string;
-  name: string;
-  key: string;
-  createdAt: string;
-}
+import {
+  type ApiKey,
+  generateApiKey,
+  loadApiKeys as fetchApiKeys,
+  createApiKey,
+  updateApiKey,
+  deleteApiKey,
+} from "@/lib/apiKeyOperations";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -26,11 +26,7 @@ export default function Dashboard() {
   const [validateKey, setValidateKey] = useState("");
   const [validationResult, setValidationResult] = useState<{ isValid: boolean; message: string } | null>(null);
 
-  const generateApiKey = () => {
-    return `leli_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-  };
-
-  // Load API keys from Supabase
+  // Load API keys from database
   useEffect(() => {
     loadApiKeys();
   }, []);
@@ -39,22 +35,8 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('api_keys')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      // Map database fields to component format
-      const mappedKeys: ApiKey[] = (data || []).map((key: any) => ({
-        id: key.id,
-        name: key.name,
-        key: key.key,
-        createdAt: key.created_at,
-      }));
-
-      setApiKeys(mappedKeys);
+      const keys = await fetchApiKeys();
+      setApiKeys(keys);
     } catch (err: any) {
       console.error('Error loading API keys:', err);
       setError(err.message || 'Failed to load API keys');
@@ -107,29 +89,13 @@ export default function Dashboard() {
     e.preventDefault();
     try {
       setError(null);
+      
       if (editingKey) {
         // Update existing key
-        const { error: updateError } = await supabase
-          .from('api_keys')
-          .update({
-            name: formData.name,
-            key: formData.key,
-          })
-          .eq('id', editingKey.id);
-
-        if (updateError) throw updateError;
+        await updateApiKey(editingKey.id, formData);
       } else {
         // Create new key
-        const { error: insertError } = await supabase
-          .from('api_keys')
-          .insert([
-            {
-              name: formData.name,
-              key: formData.key,
-            },
-          ]);
-
-        if (insertError) throw insertError;
+        await createApiKey(formData);
       }
 
       // Reload keys from database
@@ -146,12 +112,7 @@ export default function Dashboard() {
     if (confirm("Are you sure you want to delete this API key?")) {
       try {
         setError(null);
-        const { error: deleteError } = await supabase
-          .from('api_keys')
-          .delete()
-          .eq('id', id);
-
-        if (deleteError) throw deleteError;
+        await deleteApiKey(id);
 
         // Reload keys from database
         await loadApiKeys();

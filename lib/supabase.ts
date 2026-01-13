@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import https from 'https';
 
 const supabaseUrlRaw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
@@ -32,5 +33,33 @@ try {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create HTTPS agent for server-side operations to handle SSL certificates
+const createSupabaseClient = () => {
+  // Check if we're on the server (Node.js environment)
+  const isServer = typeof window === 'undefined';
+  
+  if (isServer) {
+    // Server-side: Use HTTPS agent to bypass SSL certificate issues
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false,
+    });
+
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        fetch: (url, options = {}) => {
+          return fetch(url, {
+            ...options,
+            // @ts-ignore
+            agent: url.toString().startsWith('https') ? httpsAgent : undefined,
+          });
+        }
+      }
+    });
+  } else {
+    // Client-side: Use default fetch (browser handles SSL)
+    return createClient(supabaseUrl, supabaseAnonKey);
+  }
+};
+
+export const supabase = createSupabaseClient();
 
