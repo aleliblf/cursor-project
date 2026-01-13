@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
     // Get API key from header
     const apiKey = request.headers.get('x-api-key');
     const demoUser = request.headers.get('x-demo-user');
+    const userEmail = request.headers.get('x-user-email');
     
     console.log('Validating API key:', apiKey ? `${apiKey.substring(0, 10)}...` : (demoUser ? 'demo mode' : 'empty'));
 
@@ -83,6 +84,32 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     } else {
+      // Verify API key ownership if user email is provided (from playground)
+      if (userEmail) {
+        const { data: keyOwner, error: ownerError } = await supabase
+          .from('api_keys')
+          .select('user_id, users!inner(email)')
+          .eq('key', apiKey)
+          .single();
+
+        if (ownerError || !keyOwner) {
+          console.log('API key not found');
+          return NextResponse.json(
+            { error: 'Invalid API key' },
+            { status: 401 }
+          );
+        }
+
+        // Check if the API key belongs to the authenticated user
+        if ((keyOwner.users as any).email !== userEmail) {
+          console.log('API key does not belong to user');
+          return NextResponse.json(
+            { error: 'You can only use API keys that belong to your account' },
+            { status: 403 }
+          );
+        }
+      }
+
       // Check rate limit and increment usage
       console.log('Checking rate limit for key:', apiKey.substring(0, 10) + '...');
       const rateLimitResult = await checkAndIncrementRateLimit(apiKey);
